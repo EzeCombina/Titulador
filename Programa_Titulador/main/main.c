@@ -18,6 +18,7 @@
 #include "freertos/FreeRTOSConfig.h"
 #include "driver/gpio.h"
 #include "driver/uart.h"
+#include "flash.c"
 #include "uart.c"
 
 /*==================[Definiciones]======================*/
@@ -43,11 +44,16 @@ static const char *TAG_MAIN = "MAIN";
 valoresPH valores;              // Valores de tension
 RectaRegresion valoresRecta;
 
-/*==================[Semaforos]==============================*/
+// Keys para acceder a los valores guardados en la memoria flash
+char *key_pendiente = "Pend";
+char *key_ordenada = "Ord";
+
+/*==================[Handles]==============================*/
 
 QueueHandle_t S_Agitador = NULL;
 SemaphoreHandle_t S_Limpieza = NULL;
 QueueHandle_t S_Calibracion = NULL;
+nvs_handle_t app_nvs_handle;
 
 /*==================[Prototipos de funciones]======================*/
 
@@ -64,6 +70,14 @@ void app_main(void)
     S_Limpieza = xSemaphoreCreateBinary();
     S_Calibracion = xQueueCreate(1, sizeof(char));
 
+    // Iniciar flash 
+    ESP_ERROR_CHECK(init_nvs());
+
+    // Lectura de los valores guardados en la UART 
+    read_nvs(key_pendiente, &valoresRecta.Pendiente);
+    read_nvs(key_ordenada, &valoresRecta.Ordenada);
+
+    // Iniciar UART
     init_uart();
 
     BaseType_t err = xTaskCreatePinnedToCore(
@@ -169,8 +183,6 @@ void TaskCalibracion(void *taskParmPtr)
     //gpio_set_direction(P_Motor, GPIO_MODE_OUTPUT);
 
     char estado_calibracion;
-    uint8_t cont = 0;
-    float Prom = 0.0;
 
     /*==================[Bucle]======================*/
     while(1)
@@ -204,6 +216,13 @@ void TaskCalibracion(void *taskParmPtr)
                 valoresRecta.Covarianza = (((valores.lectura_PH4 * PH4) + (valores.lectura_PH7 * PH7) + (valores.lectura_PH11 * PH11)) / valoresRecta.N) - (valoresRecta.MediaPH * valoresRecta.MediaLectura);
                 valoresRecta.Pendiente = (valoresRecta.Covarianza / valoresRecta.VarianzaLectura);
                 valoresRecta.Ordenada = ((valoresRecta.Covarianza / valoresRecta.VarianzaLectura) * (valoresRecta.MediaLectura * (-1))) + valoresRecta.MediaPH;
+                
+                // Borrado previo a la escritura (NO Necesario)
+                erase_nvs();
+
+                // Guardado en la memoria flash 
+                write_nvs(key_pendiente, valoresRecta.Pendiente);
+                write_nvs(key_ordenada, valoresRecta.Ordenada);
                 break;
             
             default:

@@ -23,12 +23,16 @@ static const char *TAG_UART = "UART";
 bool flag_Agitador = 0;
 //uint8_t flag_Calibracion = 0;
 
-extern SemaphoreHandle_t S_Agitador;
+extern QueueHandle_t S_Agitador;
 extern SemaphoreHandle_t S_Limpieza;
-extern SemaphoreHandle_t S_Calibracion;
+extern QueueHandle_t S_Calibracion;
 
 /*==================[Implementaciones]=================================*/
 
+/**
+ * @brief Inicializacion de la UART 
+ * 
+ */
 void init_uart()
 {
     uart_param_config(UART_NUM, &uart_config);
@@ -55,17 +59,12 @@ void init_uart()
     ESP_LOGI(TAG_UART, "Inicialización de la UART completa");
 
 }
-/*
-bool estadoAgitador()
-{
-    return flag_Agitador;
-}
 
-uint8_t estadoCalibracion()
-{
-    return flag_Calibracion;
-}
-*/
+/**
+ * @brief Lectura del Puerto Serie
+ * 
+ * @param taskParmPtr 
+ */
 void TaskUart(void *taskParmPtr)
 {
     /*==================[Configuraciones]======================*/

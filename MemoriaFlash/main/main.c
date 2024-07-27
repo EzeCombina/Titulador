@@ -5,7 +5,8 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 
-uint8_t ValorAct = 0;
+uint8_t pendiente = 0;
+uint8_t ordenada = 0;
 
 #define T 1000
 static char *TAG = "NVS_TEST";
@@ -58,16 +59,20 @@ static esp_err_t write_nvs(char *key, uint8_t Valor) {
 
 void app_main(void) {
     
-    char *key = "ValorNuevo";
+    char *key_pendiente = "Pend";
+    char *key_ordenada = "Ord";
     ESP_ERROR_CHECK(init_nvs());
 
-    read_nvs(key, &ValorAct);
+    read_nvs(key_pendiente, &pendiente);
+    read_nvs(key_ordenada, &ordenada);
 
     while(1)
     {
-        ValorAct++;
+        pendiente++;
+        ordenada += 2;
         vTaskDelay(T / portTICK_PERIOD_MS);
-        write_nvs(key, ValorAct);
+        write_nvs(key_pendiente, pendiente);
+        write_nvs(key_ordenada, ordenada);
     }
 
     /*

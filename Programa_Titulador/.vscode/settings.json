@@ -14,6 +14,7 @@
     "idf.pythonBinPathWin": "C:\\Users\\ricar\\.espressif\\python_env\\idf5.2_py3.11_env\\Scripts\\python.exe",
     "idf.toolsPathWin": "C:\\Users\\ricar\\.espressif",
     "files.associations": {
-        "freertos.h": "c"
+        "freertos.h": "c",
+        "uart.h": "c"
     }
 }
