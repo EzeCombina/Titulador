@@ -48,10 +48,10 @@ esp_err_t init_nvs(void) {
  * @param Valor 
  * @return esp_err_t 
  */
-esp_err_t read_nvs(char *key, float *Valor) {
+esp_err_t read_nvs(char *key, int32_t *Valor) {
 
     esp_err_t error;
-    error = nvs_get_u8(app_nvs_handle, key, Valor);
+    error = nvs_get_i32(app_nvs_handle, key, Valor);
 
     if(error != ESP_OK)
     {
@@ -69,10 +69,10 @@ esp_err_t read_nvs(char *key, float *Valor) {
  * @param Valor 
  * @return esp_err_t 
  */
-esp_err_t write_nvs(char *key, float Valor) {
+esp_err_t write_nvs(char *key, int32_t Valor) {
 
     esp_err_t error;
-    error = nvs_set_u8(app_nvs_handle, key, Valor);
+    error = nvs_set_i32(app_nvs_handle, key, Valor);
 
     if(error != ESP_OK)
     {
@@ -83,6 +83,11 @@ esp_err_t write_nvs(char *key, float Valor) {
 
 }
 
+/**
+ * @brief Borrar datos guardados en la flash 
+ * 
+ * @return esp_err_t 
+ */
 esp_err_t erase_nvs() {
 
     esp_err_t error;

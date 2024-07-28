@@ -15,6 +15,11 @@
     "idf.toolsPathWin": "C:\\Users\\ricar\\.espressif",
     "files.associations": {
         "freertos.h": "c",
-        "uart.h": "c"
-    }
+        "uart.h": "c",
+        "nvs_flash.h": "c",
+        "nvs.h": "c"
+    },
+    "idf.portWin": "COM3",
+    "idf.gitPathWin": "C:\\Users\\ricar\\.espressif\\tools\\idf-git\\2.39.2\\cmd\\git.exe",
+    "idf.flashType": "UART"
 }

@@ -30,9 +30,9 @@
 #define C_MEDICIONES        10
 #define T_MEDICIONES_MS     50
 #define T_MEDICIONES        pdMS_TO_TICKS(T_MEDICIONES_MS)
-#define PH4                 4
-#define PH7                 7
-#define PH11                11
+#define PH4                 4.0
+#define PH7                 7.0
+#define PH11                11.0
 
 /*==================[Variables globales]======================*/
 
@@ -74,8 +74,11 @@ void app_main(void)
     ESP_ERROR_CHECK(init_nvs());
 
     // Lectura de los valores guardados en la UART 
-    read_nvs(key_pendiente, &valoresRecta.Pendiente);
-    read_nvs(key_ordenada, &valoresRecta.Ordenada);
+    read_nvs(key_pendiente, &valoresRecta.Pendiente_Guardado);
+    read_nvs(key_ordenada, &valoresRecta.Ordenada_Guardado);
+
+    valoresRecta.Pendiente = valoresRecta.Pendiente_Guardado / 1000.0;
+    valoresRecta.Ordenada = valoresRecta.Ordenada_Guardado / 1000.0;
 
     // Iniciar UART
     init_uart();
@@ -197,11 +200,13 @@ void TaskCalibracion(void *taskParmPtr)
                 break;
 
             case '2':       // PH 7
+                ESP_LOGI(TAG_MAIN, "Calibración PH7");
                 // Lectura del valor en V
                 //valores.lectura_PH7 = ...;
                 break;
 
             case '3':       // PH 11
+                ESP_LOGI(TAG_MAIN, "Calibración PH11");
                 // Lectura del valor en V
                 //valores.lectura_PH11 = ...;
                 break;
@@ -209,20 +214,31 @@ void TaskCalibracion(void *taskParmPtr)
             case '4':       // RESULTADO FINAL
                 // Guardadr valor en la flash
                 // Calculo de recta de regresion 
+                ESP_LOGI(TAG_MAIN, "Calculo de recta de regresion");
                 valoresRecta.N = 3;
                 valoresRecta.MediaPH = (PH4 + PH7 + PH11) / valoresRecta.N;
+                //ESP_LOGI(TAG_MAIN, "Media PH -> %f", valoresRecta.MediaPH);
                 valoresRecta.MediaLectura = (valores.lectura_PH4 + valores.lectura_PH7 + valores.lectura_PH11) / valoresRecta.N;
+                //ESP_LOGI(TAG_MAIN, "Media Lectura -> %f", valoresRecta.MediaLectura);
                 valoresRecta.VarianzaLectura = ((pow(valores.lectura_PH4, 2) + pow(valores.lectura_PH7, 2) + pow(valores.lectura_PH11, 2)) / valoresRecta.N) - pow(valoresRecta.MediaLectura, 2);
+                //ESP_LOGI(TAG_MAIN, "Varianza Lectura -> %f", valoresRecta.VarianzaLectura);
                 valoresRecta.Covarianza = (((valores.lectura_PH4 * PH4) + (valores.lectura_PH7 * PH7) + (valores.lectura_PH11 * PH11)) / valoresRecta.N) - (valoresRecta.MediaPH * valoresRecta.MediaLectura);
+                //ESP_LOGI(TAG_MAIN, "Covarianza -> %f", valoresRecta.Covarianza);
                 valoresRecta.Pendiente = (valoresRecta.Covarianza / valoresRecta.VarianzaLectura);
                 valoresRecta.Ordenada = ((valoresRecta.Covarianza / valoresRecta.VarianzaLectura) * (valoresRecta.MediaLectura * (-1))) + valoresRecta.MediaPH;
-                
+                ESP_LOGI(TAG_MAIN, "Pendiente -> %f - Ordenada -> %f", valoresRecta.Pendiente, valoresRecta.Ordenada);
+
+                // Conversion de la pendiente y la ordenada a variables enteras para poder guardarlas en la falsh 
+
+                valoresRecta.Pendiente_Guardado = (int32_t) (valoresRecta.Pendiente * 1000);    // Multiplicamos por 1000 para guardar 3 decimales
+                valoresRecta.Ordenada_Guardado = (int32_t) (valoresRecta.Ordenada * 1000);      // En caso de necesitar mayor presicion multiplicar por un numero mas grande 
+
                 // Borrado previo a la escritura (NO Necesario)
-                erase_nvs();
+                //erase_nvs();
 
                 // Guardado en la memoria flash 
-                write_nvs(key_pendiente, valoresRecta.Pendiente);
-                write_nvs(key_ordenada, valoresRecta.Ordenada);
+                write_nvs(key_pendiente, valoresRecta.Pendiente_Guardado);
+                write_nvs(key_ordenada, valoresRecta.Ordenada_Guardado);
                 break;
             
             default:

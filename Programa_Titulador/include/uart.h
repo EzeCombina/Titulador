@@ -35,17 +35,6 @@ typedef struct
     float lectura_PH11; 
 }valoresPH;
 
-typedef struct
-{
-    int N;
-    float MediaPH; 
-    float MediaLectura; 
-    float VarianzaLectura; 
-    float Covarianza; 
-    float Pendiente;
-    float Ordenada;
-}RectaRegresion;
-
 /*==================[Prototipos de funciones]======================*/
 
 void init_uart();
