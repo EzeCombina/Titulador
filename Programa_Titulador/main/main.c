@@ -36,8 +36,8 @@
 
 /*==================[Variables globales]======================*/
 
-gpio_int_type_t P_Agitador = GPIO_NUM_25;
-gpio_int_type_t P_Motor    = GPIO_NUM_26;
+gpio_int_type_t P_Agitador = GPIO_NUM_17;
+gpio_int_type_t P_Motor    = GPIO_NUM_12;
 
 static const char *TAG_MAIN = "MAIN";
 
@@ -48,10 +48,13 @@ RectaRegresion valoresRecta;
 char *key_pendiente = "Pend";
 char *key_ordenada = "Ord";
 
+Limpieza limpieza_main;
+
 /*==================[Handles]==============================*/
 
 QueueHandle_t S_Agitador = NULL;
-SemaphoreHandle_t S_Limpieza = NULL;
+//SemaphoreHandle_t S_Limpieza = NULL;
+QueueHandle_t S_Limpieza = NULL;
 QueueHandle_t S_Calibracion = NULL;
 nvs_handle_t app_nvs_handle;
 
@@ -67,7 +70,8 @@ void app_main(void)
 {
 
     S_Agitador = xQueueCreate(1, sizeof(bool));
-    S_Limpieza = xSemaphoreCreateBinary();
+    //S_Limpieza = xSemaphoreCreateBinary();
+    S_Limpieza = xQueueCreate(1, sizeof(bool));
     S_Calibracion = xQueueCreate(1, sizeof(char));
 
     // Iniciar flash 
@@ -150,31 +154,36 @@ void TaskAgitador(void *taskParmPtr)
     while(1)
     {
         xQueueReceive(S_Agitador, &estado_agitador, portMAX_DELAY);
-        if(estado_agitador == 1)
-        {
-            gpio_set_level(P_Agitador, 0);
-        }else{gpio_set_level(P_Agitador, 1);}
+        gpio_set_level(P_Agitador, estado_agitador);
+        //if(estado_agitador == 1)
+        //{
+        //    gpio_set_level(P_Agitador, 0);
+        //}else{gpio_set_level(P_Agitador, 1);}
     } 
 }
 
 void TaskLimpieza(void *taskParmPtr)
 {
+    // ---La limpieza de la bomba va a ser regulabre y no por tiempo---
+    // ---Se deben pasar DOS parámetros -> La direccion de giro y el on/off---
+
     /*==================[Configuraciones]======================*/
     esp_rom_gpio_pad_select_gpio(P_Motor);
     gpio_set_direction(P_Motor, GPIO_MODE_OUTPUT);
 
-    TickType_t xPeriodicity = T_LIMPIEZA; 
-    TickType_t xLastWakeTime = xTaskGetTickCount();
+    //TickType_t xPeriodicity = T_LIMPIEZA; 
+    //TickType_t xLastWakeTime = xTaskGetTickCount();
 
     /*==================[Bucle]======================*/
     while(1)
     {
-        xSemaphoreTake(S_Limpieza, portMAX_DELAY);
-        xLastWakeTime = xTaskGetTickCount();
+        xQueueReceive(S_Limpieza, &limpieza_main.Habilitador_Limpieza, portMAX_DELAY);
+        gpio_set_level(P_Motor, limpieza_main.Habilitador_Limpieza);
+        //xLastWakeTime = xTaskGetTickCount();
         //ESP_LOGI(TAG_MAIN, "Led Encendido");
-        gpio_set_level(P_Motor, 1);
-        vTaskDelayUntil(&xLastWakeTime, xPeriodicity);
-        gpio_set_level(P_Motor, 0);
+        //gpio_set_level(P_Motor, 1);
+        //vTaskDelayUntil(&xLastWakeTime, xPeriodicity);
+        //gpio_set_level(P_Motor, 0);
         //ESP_LOGI(TAG_MAIN, "Led Apagado");
     } 
 }

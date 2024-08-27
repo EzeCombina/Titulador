@@ -20,11 +20,15 @@ void TaskUart(void *taskParmPtr);      // Prototipo de la función de la tarea
 
 static const char *TAG_UART = "UART";
 
-bool flag_Agitador = 0;
+bool flag_Agitador = false;
+//bool flag_Limpieza = false;
 //uint8_t flag_Calibracion = 0;
 
+Limpieza limpieza;
+
 extern QueueHandle_t S_Agitador;
-extern SemaphoreHandle_t S_Limpieza;
+//extern SemaphoreHandle_t S_Limpieza;
+extern QueueHandle_t S_Limpieza;
 extern QueueHandle_t S_Calibracion;
 
 /*==================[Implementaciones]=================================*/
@@ -83,8 +87,9 @@ void TaskUart(void *taskParmPtr)
         {   
             continue;
         }
-
-        //uart_write_bytes(UART_NUM,(const char*) Dato, len);
+        
+        // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
+        uart_write_bytes(UART_NUM, "OK", sizeof(char));
 
         ESP_LOGI(TAG_UART, "Dato recibido -> %s", Dato);
 
@@ -93,14 +98,31 @@ void TaskUart(void *taskParmPtr)
             char valor = Dato[i];
 
             switch(valor)
-            {
-                case 'A':
-                    xSemaphoreGive(S_Limpieza);
-                    break;
-                
-                case 'L':
-                    flag_Agitador = !flag_Agitador; 
+            {       
+                //case 'A':
+                //    xSemaphoreGive(S_Limpieza);
+                //    break;
+                case 'AI':
+                    // ---Agregar zona critica para la variable "flag_Agitador"---
+                    flag_Agitador = true;
                     xQueueSend(S_Agitador, &flag_Agitador, portMAX_DELAY);
+                    break;
+
+                case 'AF':
+                    flag_Agitador = false;
+                    xQueueSend(S_Agitador, &flag_Agitador, portMAX_DELAY);
+                    break;
+
+                case 'LI':
+                    //flag_Agitador = true; 
+                    limpieza.Habilitador_Limpieza = true;
+                    xQueueSend(S_Limpieza, &limpieza.Habilitador_Limpieza, portMAX_DELAY);
+                    break;
+
+                case 'LF':
+                    //flag_Agitador = false; 
+                    limpieza.Habilitador_Limpieza = false;
+                    xQueueSend(S_Limpieza, &limpieza.Habilitador_Limpieza, portMAX_DELAY);
                     break;
                 
                 case '1':
