@@ -20,7 +20,7 @@
 uart_config_t uart_config = {
 
     .baud_rate  = 115200,
-    .data_bits  = UART_DATA_BITS_MAX, // ---UART_DATA_8_BITS---
+    .data_bits  = UART_DATA_8_BITS, // ---UART_DATA_8_BITS---
     .parity     = UART_PARITY_DISABLE,
     .stop_bits  = UART_STOP_BITS_1,
     .flow_ctrl  = UART_HW_FLOWCTRL_DISABLE,
@@ -33,13 +33,6 @@ typedef struct
     bool Habilitador_Limpieza;
     bool Giro_Limpieza;
 }Limpieza;
-
-typedef struct
-{
-    float lectura_PH4; 
-    float lectura_PH7; 
-    float lectura_PH11; 
-}valoresPH;
 
 /*==================[Prototipos de funciones]======================*/
 

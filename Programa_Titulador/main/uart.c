@@ -26,6 +26,15 @@ bool flag_Agitador = false;
 
 Limpieza limpieza;
 
+char *msg = "OK\r\n";
+
+const char *AI = "AI";
+const char *AF = "AF";
+const char *LI = "LI";
+const char *LF = "LF";
+
+int largo, largo2;
+
 extern QueueHandle_t S_Agitador;
 //extern SemaphoreHandle_t S_Limpieza;
 extern QueueHandle_t S_Limpieza;
@@ -73,7 +82,7 @@ void TaskUart(void *taskParmPtr)
 {
     /*==================[Configuraciones]======================*/
 
-    uint8_t *Dato = (uint8_t*) malloc(BUFFER_SIZE);     // Puntero toma el dato leido, con "malloc" se le asigna un espacio de memoria
+    char *Dato = (char*) malloc(BUFFER_SIZE);     // Puntero toma el dato leido, con "malloc" se le asigna un espacio de memoria
 
     /*==================[Bucle]======================*/
     while(1)
@@ -82,72 +91,97 @@ void TaskUart(void *taskParmPtr)
 
         int len = uart_read_bytes(UART_NUM, Dato, BUFFER_SIZE, pdMS_TO_TICKS(T_GUARDADO)); 
 
-        // Si el dato leido es dif de 0, lo escribe en el terminal y lo vuelve a mandar
         if(len == 0)
         {   
             continue;
         }
         
         // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
-        uart_write_bytes(UART_NUM, "OK", sizeof(char));
+        uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
 
-        ESP_LOGI(TAG_UART, "Dato recibido -> %s", Dato);
+        Dato[2] = '\0';
 
-        for(size_t i = 0; i < len - 2; i++)
-        {
-            char valor = Dato[i];
+        //ESP_LOGI(TAG_UART, "Largo Dato -> %d - %d", strlen(Dato), strlen(AI));
+        //ESP_LOGI(TAG_UART, "Dato recibido -> %s\n", Dato);
 
-            switch(valor)
-            {       
-                //case 'A':
-                //    xSemaphoreGive(S_Limpieza);
-                //    break;
-                case 'AI':
-                    // ---Agregar zona critica para la variable "flag_Agitador"---
-                    flag_Agitador = true;
-                    xQueueSend(S_Agitador, &flag_Agitador, portMAX_DELAY);
-                    break;
-
-                case 'AF':
-                    flag_Agitador = false;
-                    xQueueSend(S_Agitador, &flag_Agitador, portMAX_DELAY);
-                    break;
-
-                case 'LI':
-                    //flag_Agitador = true; 
-                    limpieza.Habilitador_Limpieza = true;
-                    xQueueSend(S_Limpieza, &limpieza.Habilitador_Limpieza, portMAX_DELAY);
-                    break;
-
-                case 'LF':
-                    //flag_Agitador = false; 
-                    limpieza.Habilitador_Limpieza = false;
-                    xQueueSend(S_Limpieza, &limpieza.Habilitador_Limpieza, portMAX_DELAY);
-                    break;
-                
-                case '1':
-                    //flag_Calibracion = valor; 
-                    xQueueSend(S_Calibracion, &valor, portMAX_DELAY);
-                    break;
-                
-                case '2':
-                    //flag_Calibracion = valor; 
-                    xQueueSend(S_Calibracion, &valor, portMAX_DELAY);
-                    break;
-                
-                case '3':
-                    //flag_Calibracion = valor; 
-                    xQueueSend(S_Calibracion, &valor, portMAX_DELAY);
-                    break;
-
-                case '4':
-                    //flag_Calibracion = valor; 
-                    xQueueSend(S_Calibracion, &valor, portMAX_DELAY);
-                    break;    
-                
-                default:
-                    break;
-            }
+        if(strcmp(Dato, AI) == 0)
+        { 
+            //ESP_LOGI(TAG_UART, "Entrada a AI\n");
+            flag_Agitador = true;
+            xQueueSend(S_Agitador, &flag_Agitador, portMAX_DELAY);
         }
+
+        if(strcmp(Dato, AF) == 0)
+        {
+            flag_Agitador = false;
+            xQueueSend(S_Agitador, &flag_Agitador, portMAX_DELAY);
+        }
+
+        if(strcmp(Dato, LI) == 0)
+        {
+            limpieza.Giro_Limpieza = 1;
+            limpieza.Habilitador_Limpieza = true;
+            xQueueSend(S_Limpieza, &limpieza, portMAX_DELAY);
+        }
+
+        if(strcmp(Dato, LF) == 0)
+        {
+            limpieza.Habilitador_Limpieza = false;
+            xQueueSend(S_Limpieza, &limpieza, portMAX_DELAY);
+        }
+
+        // ---No usamos Switch ya que no nos permite usar strings como condicion---
+
+        // switch(Dato)
+        // {       
+        //     //case 'A':
+        //     //    xSemaphoreGive(S_Limpieza);
+        //     //    break;
+        //     case 'AI':
+        //         // ---Agregar zona critica para la variable "flag_Agitador"---
+        //         flag_Agitador = true;
+        //         xQueueSend(S_Agitador, &flag_Agitador, portMAX_DELAY);
+        //         break;
+
+        //     case 'AF':
+        //         flag_Agitador = false;
+        //         xQueueSend(S_Agitador, &flag_Agitador, portMAX_DELAY);
+        //         break;
+
+        //     case 'LI':
+        //         //flag_Agitador = true; 
+        //         limpieza.Habilitador_Limpieza = true;
+        //         xQueueSend(S_Limpieza, &limpieza.Habilitador_Limpieza, portMAX_DELAY);
+        //         break;
+
+        //     case 'LF':
+        //         //flag_Agitador = false; 
+        //         limpieza.Habilitador_Limpieza = false;
+        //         xQueueSend(S_Limpieza, &limpieza.Habilitador_Limpieza, portMAX_DELAY);
+        //         break;
+            
+        //     case '1':
+        //         //flag_Calibracion = valor; 
+        //         xQueueSend(S_Calibracion, &valor, portMAX_DELAY);
+        //         break;
+            
+        //     case '2':
+        //         //flag_Calibracion = valor; 
+        //         xQueueSend(S_Calibracion, &valor, portMAX_DELAY);
+        //         break;
+            
+        //     case '3':
+        //         //flag_Calibracion = valor; 
+        //         xQueueSend(S_Calibracion, &valor, portMAX_DELAY);
+        //         break;
+
+        //     case '4':
+        //         //flag_Calibracion = valor; 
+        //         xQueueSend(S_Calibracion, &valor, portMAX_DELAY);
+        //         break;    
+            
+        //     default:
+        //         break;
+        // }
     } 
 }
