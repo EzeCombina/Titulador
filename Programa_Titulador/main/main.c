@@ -99,8 +99,8 @@ void app_main(void)
     read_nvs(key_pendiente, &valoresRecta.Pendiente_Guardado);
     read_nvs(key_ordenada, &valoresRecta.Ordenada_Guardado);
 
-    valoresRecta.Pendiente = valoresRecta.Pendiente_Guardado / 1000.0;
-    valoresRecta.Ordenada = valoresRecta.Ordenada_Guardado / 1000.0;
+    valoresRecta.Pendiente = valoresRecta.Pendiente_Guardado / 10000.0;
+    valoresRecta.Ordenada = valoresRecta.Ordenada_Guardado / 10000.0;
 
     // Iniciar UART
     init_uart();
@@ -208,12 +208,23 @@ void TaskLimpieza(void *taskParmPtr)
     {
         xQueueReceive(S_Limpieza, &limpieza_main, portMAX_DELAY);
         gpio_set_level(P_Giro, limpieza_main.Giro_Limpieza);
-        //gpio_set_level(P_Motor, limpieza_main.Habilitador_Limpieza);
-        xLastWakeTime = xTaskGetTickCount();
+
+        if(limpieza_main.Giro_Limpieza == true)
+        {
+            // Habilitar Enabler
+            ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
+        }
+        else if(limpieza_main.Giro_Limpieza == false)
+        {
+            // Desabiilitar Enabler
+            ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
+        }
+
+        //xLastWakeTime = xTaskGetTickCount();
         //ESP_LOGI(TAG_MAIN, "Led Encendido");
-        ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
-        vTaskDelayUntil(&xLastWakeTime, xPeriodicity);
-        ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
+        //ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
+        //vTaskDelayUntil(&xLastWakeTime, xPeriodicity);
+        //ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
         //ESP_LOGI(TAG_MAIN, "Led Apagado");
     } 
 }
@@ -225,6 +236,7 @@ void TaskCalibracion(void *taskParmPtr)
     //gpio_set_direction(P_Motor, GPIO_MODE_OUTPUT);
 
     char estado_calibracion;
+    char valor_actual = '/';
 
     /*==================[Bucle]======================*/
     while(1)
@@ -232,21 +244,30 @@ void TaskCalibracion(void *taskParmPtr)
         xQueueReceive(S_Calibracion, &estado_calibracion, portMAX_DELAY);
         switch(estado_calibracion)
         {
-            case '1':       // PH 4
+            case 'D':       // PH 4
                 ESP_LOGI(TAG_MAIN, "Calibración PH4");
-                lectura(estado_calibracion);
+                valor_actual = estado_calibracion;
+                //lectura(estado_calibracion);
                 break;
 
-            case '2':       // PH 7
+            case 'E':       // PH 7
                 ESP_LOGI(TAG_MAIN, "Calibración PH7");
-                lectura(estado_calibracion);
+                valor_actual = estado_calibracion;
+                //lectura(estado_calibracion);
                 break;
 
-            case '3':       // PH 10
-                ESP_LOGI(TAG_MAIN, "Calibración PH11");
-                lectura(estado_calibracion);
+            case 'F':       // PH 10
+                ESP_LOGI(TAG_MAIN, "Calibración PH10");
+                valor_actual = estado_calibracion;
+                //lectura(estado_calibracion);
                 break;
 
+            case 'N':       // PH 10
+                ESP_LOGI(TAG_MAIN, "Guardado PH");
+                lectura(valor_actual);
+                break;
+
+            // ---VER EL VALOR DEL CHAR CUANDO SE QUIERE GUARDAR EL VALOR FINAL DE LA RECTA (ORDENADA Y PENDIENTE)---
             case 'a':       // RESULTADO FINAL
                 // Guardadr valor en la flash
                 // Calculo de recta de regresion 
@@ -255,8 +276,8 @@ void TaskCalibracion(void *taskParmPtr)
 
                 // Conversion de la pendiente y la ordenada a variables enteras para poder guardarlas en la falsh 
 
-                valoresRecta.Pendiente_Guardado = (int32_t) (valoresRecta.Pendiente * 1000);    // Multiplicamos por 1000 para guardar 3 decimales
-                valoresRecta.Ordenada_Guardado = (int32_t) (valoresRecta.Ordenada * 1000);      // En caso de necesitar mayor presicion multiplicar por un numero mas grande 
+                valoresRecta.Pendiente_Guardado = (int32_t) (valoresRecta.Pendiente * 10000.0);    // Multiplicamos por 1000 para guardar 3 decimales
+                valoresRecta.Ordenada_Guardado = (int32_t) (valoresRecta.Ordenada * 10000.0);      // En caso de necesitar mayor presicion multiplicar por un numero mas grande 
 
                 // Borrado previo a la escritura (NO Necesario)
                 //erase_nvs();

@@ -117,28 +117,24 @@ void TaskADC(void *taskParmPtr)
     }
 }
 
-void lectura(char estado_calibracion)
+void lectura(char valor_actual)
 {
     // ---Codigo referente a la lectura del valor para calibra---
     // ---Aprox 2 min para que estabilice la medicion---
     // int n = 0;
-    switch(estado_calibracion)
+    switch(valor_actual)
     {
-        case '1':       // PH 4
+        case 'D':       // PH 4
             // ---AGREGAR CODIGO DE APROXIMACIÓN---
-            // while(n < 1000) // 1000 Iteraziones
-            // {
-
-            // }
             valoresCalibracion.lectura_PH4 = Vout_filtrada_corregida;
             break;
         
-        case '2':       // PH 7
+        case 'E':       // PH 7
             // ---AGREGAR CODIGO DE APROXIMACIÓN---
             valoresCalibracion.lectura_PH7 = Vout_filtrada_corregida;
             break;
 
-        case '3':       // PH 10
+        case 'F':       // PH 10
             // ---AGREGAR CODIGO DE APROXIMACIÓN---
             valoresCalibracion.lectura_PH10 = Vout_filtrada_corregida;
             break;
@@ -149,9 +145,6 @@ void adc_calibracion()
 {
     // ---Codigo referente a la lectura de medicion para hacer la calibracion---
     ESP_LOGI(TAG_ADC, "Calculo de recta de regresion");
-    //valoresCalibracion.lectura_PH4 = 5.57;
-    //valoresCalibracion.lectura_PH7 = 7.01;
-    //valoresCalibracion.lectura_PH10 = 8.356;
     valoresRecta.N = 3;
     valoresRecta.Sum_X = PH4 + PH7 + PH10;
     valoresRecta.Sum_Y = valoresCalibracion.lectura_PH4 + valoresCalibracion.lectura_PH7 + valoresCalibracion.lectura_PH10;

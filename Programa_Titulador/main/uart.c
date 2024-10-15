@@ -156,7 +156,7 @@ void TaskUart(void *taskParmPtr)
             // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
             uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
             limpieza.Habilitador_Limpieza = false;
-            //xQueueSend(S_Limpieza, &limpieza, portMAX_DELAY);
+            xQueueSend(S_Limpieza, &limpieza, portMAX_DELAY);
         }
 
         if(strcmp(Dato, Lectura_ADC) == 0)
@@ -167,6 +167,34 @@ void TaskUart(void *taskParmPtr)
             uart_write_bytes(UART_NUM, valor, sizeof(valor));
             uart_write_bytes(UART_NUM, "/", sizeof(char));
             vTaskDelay(pdMS_TO_TICKS(100));
+        }
+
+        if(strcmp(Dato, Buffer_4) == 0)
+        {
+            // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
+            uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+            xQueueSend(S_Calibracion, &Buffer_4, portMAX_DELAY);
+        }
+
+        if(strcmp(Dato, Buffer_7) == 0)
+        {
+            // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
+            uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+            xQueueSend(S_Calibracion, &Buffer_7, portMAX_DELAY);
+        }
+
+        if(strcmp(Dato, Buffer_10) == 0)
+        {
+            // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
+            uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+            xQueueSend(S_Calibracion, &Buffer_10, portMAX_DELAY);
+        }
+
+        if(strcmp(Dato, Guardar_Volumen) == 0)
+        {
+            // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
+            uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+            xQueueSend(S_Calibracion, &Guardar_Volumen, portMAX_DELAY); // ---VER SI ES EL COMANDO CORRECTO PARA REALIZAR EL GUARDADO---
         }
 
         // if(strcmp(Dato, Agitador_ON) == 0)

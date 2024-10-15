@@ -53,7 +53,7 @@ typedef struct
 /*==================[Prototipos de funciones]======================*/
 
 void adc_init();
-void lectura(char estado_calibracion);
+void lectura(char valor_actual);
 void adc_calibracion();
 
 #endif
