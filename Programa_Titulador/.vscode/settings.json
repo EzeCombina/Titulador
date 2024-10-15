@@ -18,9 +18,10 @@
         "uart.h": "c",
         "nvs_flash.h": "c",
         "nvs.h": "c",
-        "uart_types.h": "c"
+        "uart_types.h": "c",
+        "task.h": "c"
     },
-    "idf.portWin": "COM3",
+    "idf.portWin": "COM5",
     "idf.gitPathWin": "C:\\Users\\ricar\\.espressif\\tools\\idf-git\\2.39.2\\cmd\\git.exe",
     "idf.flashType": "UART"
 }

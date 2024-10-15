@@ -33,9 +33,6 @@
 #define C_MEDICIONES        10
 #define T_MEDICIONES_MS     50
 #define T_MEDICIONES        pdMS_TO_TICKS(T_MEDICIONES_MS)
-#define PH4                 4.0
-#define PH7                 7.0
-#define PH11                11.0
 
 // ---PWM---
 #define LEDC_TIMER              LEDC_TIMER_0
@@ -50,12 +47,13 @@
 /*==================[Variables globales]======================*/
 
 gpio_int_type_t P_Agitador = GPIO_NUM_17;
+gpio_int_type_t P_3_3      = GPIO_NUM_32;       // Salida 3.3 
 gpio_int_type_t P_Motor    = GPIO_NUM_12;
 gpio_int_type_t P_Giro     = GPIO_NUM_27;
 
 static const char *TAG_MAIN = "MAIN";
 
-valoresPH valores_main;              // Valores de tension
+valoresPH valoresCalibracion;       // Valores de tension
 RectaRegresion valoresRecta;
 
 // Keys para acceder a los valores guardados en la memoria flash
@@ -76,7 +74,7 @@ nvs_handle_t app_nvs_handle;
 
 void TaskAgitador(void *taskParmPtr);
 void TaskLimpieza(void *taskParmPtr); 
-void TaskCalibracion(void *taskParmPtr);
+void TaskCalibracion(void *taskParmPtr);   
 static void example_ledc_init(void); 
 
 /*==================[Main]======================*/
@@ -109,6 +107,10 @@ void app_main(void)
 
     // Iniciar ADC
     adc_init();
+
+    esp_rom_gpio_pad_select_gpio(P_3_3);
+    gpio_set_direction(P_3_3, GPIO_MODE_OUTPUT);
+    gpio_set_level(P_3_3, true);
 
     BaseType_t err = xTaskCreatePinnedToCore(
         TaskAgitador,                     	// Funcion de la tarea a ejecutar
@@ -178,6 +180,7 @@ void TaskAgitador(void *taskParmPtr)
     {
         xQueueReceive(S_Agitador, &estado_agitador, portMAX_DELAY);
         gpio_set_level(P_Agitador, estado_agitador);
+        ESP_LOGI(TAG_MAIN, "Estado Agitador = %d\n", estado_agitador);
         
         // if(estado_agitador == true)
         // {
@@ -231,38 +234,24 @@ void TaskCalibracion(void *taskParmPtr)
         {
             case '1':       // PH 4
                 ESP_LOGI(TAG_MAIN, "Calibración PH4");
-                // Lectura del valor en V
-                //valores.lectura_PH4 = ...;
+                lectura(estado_calibracion);
                 break;
 
             case '2':       // PH 7
                 ESP_LOGI(TAG_MAIN, "Calibración PH7");
-                // Lectura del valor en V
-                //valores.lectura_PH7 = ...;
+                lectura(estado_calibracion);
                 break;
 
-            case '3':       // PH 11
+            case '3':       // PH 10
                 ESP_LOGI(TAG_MAIN, "Calibración PH11");
-                // Lectura del valor en V
-                //valores.lectura_PH11 = ...;
+                lectura(estado_calibracion);
                 break;
 
-            case '4':       // RESULTADO FINAL
+            case 'a':       // RESULTADO FINAL
                 // Guardadr valor en la flash
                 // Calculo de recta de regresion 
-                ESP_LOGI(TAG_MAIN, "Calculo de recta de regresion");
-                valoresRecta.N = 3;
-                valoresRecta.MediaPH = (PH4 + PH7 + PH11) / valoresRecta.N;
-                //ESP_LOGI(TAG_MAIN, "Media PH -> %f", valoresRecta.MediaPH);
-                valoresRecta.MediaLectura = (valores_main.lectura_PH4 + valores_main.lectura_PH7 + valores_main.lectura_PH11) / valoresRecta.N;
-                //ESP_LOGI(TAG_MAIN, "Media Lectura -> %f", valoresRecta.MediaLectura);
-                valoresRecta.VarianzaLectura = ((pow(valores_main.lectura_PH4, 2) + pow(valores_main.lectura_PH7, 2) + pow(valores_main.lectura_PH11, 2)) / valoresRecta.N) - pow(valoresRecta.MediaLectura, 2);
-                //ESP_LOGI(TAG_MAIN, "Varianza Lectura -> %f", valoresRecta.VarianzaLectura);
-                valoresRecta.Covarianza = (((valores_main.lectura_PH4 * PH4) + (valores_main.lectura_PH7 * PH7) + (valores_main.lectura_PH11 * PH11)) / valoresRecta.N) - (valoresRecta.MediaPH * valoresRecta.MediaLectura);
-                //ESP_LOGI(TAG_MAIN, "Covarianza -> %f", valoresRecta.Covarianza);
-                valoresRecta.Pendiente = (valoresRecta.Covarianza / valoresRecta.VarianzaLectura);
-                valoresRecta.Ordenada = ((valoresRecta.Covarianza / valoresRecta.VarianzaLectura) * (valoresRecta.MediaLectura * (-1))) + valoresRecta.MediaPH;
-                ESP_LOGI(TAG_MAIN, "Pendiente -> %f - Ordenada -> %f", valoresRecta.Pendiente, valoresRecta.Ordenada);
+                
+                adc_calibracion();
 
                 // Conversion de la pendiente y la ordenada a variables enteras para poder guardarlas en la falsh 
 

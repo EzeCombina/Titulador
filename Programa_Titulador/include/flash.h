@@ -9,21 +9,6 @@
 #include "nvs.h"
 #include "nvs_flash.h"
 
-/*==================[Definiciones]===================================*/
-
-typedef struct
-{
-    int N;
-    float MediaPH; 
-    float MediaLectura; 
-    float VarianzaLectura; 
-    float Covarianza; 
-    float Pendiente;
-    float Ordenada;
-    int32_t Pendiente_Guardado;     // --VER MANERA DE CAMBIAR ESTO-- 
-    int32_t Ordenada_Guardado; 
-}RectaRegresion;
-
 /*==================[Prototipos de funciones]======================*/
 
 esp_err_t init_nvs(void);
