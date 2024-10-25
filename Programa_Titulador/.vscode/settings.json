@@ -13,5 +13,8 @@
     ],
     "idf.portWin": "COM1",
     "idf.pythonBinPathWin": "C:\\ESP32\\.espressif\\python_env\\idf5.3_py3.11_env\\Scripts\\python.exe",
-    "idf.toolsPathWin": "C:\\ESP32\\.espressif"
+    "idf.toolsPathWin": "C:\\ESP32\\.espressif",
+    "files.associations": {
+        "stdbool.h": "c"
+    }
 }

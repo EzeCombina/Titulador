@@ -25,7 +25,8 @@ static const char *TAG_UART = "UART";
 extern float Vout_PH;
 char valor[5];
 
-bool flag_Agitador = false;
+bool flag_Agitador  = false;
+bool flag_Titular   = false;
 //bool flag_Limpieza = false;
 //uint8_t flag_Calibracion = 0;
 
@@ -58,6 +59,7 @@ extern QueueHandle_t S_Agitador;
 //extern SemaphoreHandle_t S_Limpieza;
 extern QueueHandle_t S_Limpieza;
 extern QueueHandle_t S_Calibracion;
+extern QueueHandle_t S_Titulacion;
 
 /*==================[Implementaciones]=================================*/
 
@@ -166,6 +168,12 @@ void TaskUart(void *taskParmPtr)
             snprintf(valor, sizeof(valor), "%.02f", Vout_PH);
             uart_write_bytes(UART_NUM, valor, sizeof(valor));
             uart_write_bytes(UART_NUM, "/", sizeof(char));
+
+            if(flag_Titular == true)
+            {
+                xQueueSend(S_Titulacion, &flag_Titular, portMAX_DELAY); // Probar el portMAX_DELAY en 0
+            }
+
             vTaskDelay(pdMS_TO_TICKS(100));
         }
 
@@ -197,65 +205,16 @@ void TaskUart(void *taskParmPtr)
             xQueueSend(S_Calibracion, &Guardar_Volumen, portMAX_DELAY); // ---VER SI ES EL COMANDO CORRECTO PARA REALIZAR EL GUARDADO---
         }
 
-        // if(strcmp(Dato, Agitador_ON) == 0)
-        // {
-        //     //flag_Calibracion = valor;
-        //     char a = 'a';
-        //     xQueueSend(S_Calibracion, &a, portMAX_DELAY);
-        // }
-
-        // ---No usamos Switch ya que no nos permite usar strings como condicion---
-
-        // switch(Dato)
-        // {
-        //     //case 'A':
-        //     //    xSemaphoreGive(S_Limpieza);
-        //     //    break;
-        //     case 'AI':
-        //         // ---Agregar zona critica para la variable "flag_Agitador"---
-        //         flag_Agitador = true;
-        //         xQueueSend(S_Agitador, &flag_Agitador, portMAX_DELAY);
-        //         break;
-
-        //     case 'AF':
-        //         flag_Agitador = false;
-        //         xQueueSend(S_Agitador, &flag_Agitador, portMAX_DELAY);
-        //         break;
-
-        //     case 'LI':
-        //         //flag_Agitador = true;
-        //         limpieza.Habilitador_Limpieza = true;
-        //         xQueueSend(S_Limpieza, &limpieza.Habilitador_Limpieza, portMAX_DELAY);
-        //         break;
-
-        //     case 'LF':
-        //         //flag_Agitador = false;
-        //         limpieza.Habilitador_Limpieza = false;
-        //         xQueueSend(S_Limpieza, &limpieza.Habilitador_Limpieza, portMAX_DELAY);
-        //         break;
-
-        //     case '1':
-        //         //flag_Calibracion = valor;
-        //         xQueueSend(S_Calibracion, &valor, portMAX_DELAY);
-        //         break;
-
-        //     case '2':
-        //         //flag_Calibracion = valor;
-        //         xQueueSend(S_Calibracion, &valor, portMAX_DELAY);
-        //         break;
-
-        //     case '3':
-        //         //flag_Calibracion = valor;
-        //         xQueueSend(S_Calibracion, &valor, portMAX_DELAY);
-        //         break;
-
-        //     case '4':
-        //         //flag_Calibracion = valor;
-        //         xQueueSend(S_Calibracion, &valor, portMAX_DELAY);
-        //         break;
-
-        //     default:
-        //         break;
-        // }
+        if(strcmp(Dato, Titular_ON) == 0)
+        {
+            // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
+            uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+            flag_Titular = true;
+        }
     }
+}
+
+void volumen()
+{
+    // ---ACA VA EL CÓDIGO REFEENTE A LA COMPARACIÓN DE VALORES DE PH PARA CONOCER EL PUNTO DE INFLEXIÓN---
 }

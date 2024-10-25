@@ -1,5 +1,5 @@
-#ifndef UART_H_
-#define UART_H_
+#ifndef UART_H
+#define UART_H
 
 /*==================[Inclusiones]============================================*/
 
@@ -37,5 +37,6 @@ typedef struct
 /*==================[Prototipos de funciones]======================*/
 
 void init_uart();
+void volumen();
 
 #endif

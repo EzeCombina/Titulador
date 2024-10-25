@@ -26,8 +26,8 @@
 
 /*==================[Definiciones]======================*/
 
-#define T_LIMPIEZA_MS       1150
-#define T_LIMPIEZA          pdMS_TO_TICKS(T_LIMPIEZA_MS)
+#define T_TITULACION_MS     1150
+#define T_TITULACION        pdMS_TO_TICKS(T_TITULACION_MS)
 #define PROCESADORA         0
 #define PROCESADORB         1
 #define C_MEDICIONES        10
@@ -64,17 +64,19 @@ Limpieza limpieza_main;
 
 /*==================[Handles]==============================*/
 
-QueueHandle_t S_Agitador = NULL;
+QueueHandle_t S_Agitador    = NULL;
 //SemaphoreHandle_t S_Limpieza = NULL;
-QueueHandle_t S_Limpieza = NULL;
+QueueHandle_t S_Limpieza    = NULL;
 QueueHandle_t S_Calibracion = NULL;
+QueueHandle_t S_Titulacion  = NULL;
 nvs_handle_t app_nvs_handle;
 
 /*==================[Prototipos de funciones]======================*/
 
 void TaskAgitador(void *taskParmPtr);
 void TaskLimpieza(void *taskParmPtr); 
-void TaskCalibracion(void *taskParmPtr);   
+void TaskCalibracion(void *taskParmPtr);  
+void TaskTitulacion(void *taskParmPtr);  
 static void example_ledc_init(void); 
 
 /*==================[Main]======================*/
@@ -86,6 +88,7 @@ void app_main(void)
     //S_Limpieza = xSemaphoreCreateBinary();
     S_Limpieza = xQueueCreate(1, sizeof(limpieza_main));
     S_Calibracion = xQueueCreate(1, sizeof(char));
+    S_Titulacion = xQueueCreate(1, sizeof(bool));
 
     // Set the LEDC peripheral configuration
     example_ledc_init();
@@ -163,6 +166,23 @@ void app_main(void)
         while(1);    // Si no pudo crear la tarea queda en un bucle infinito
     }
 
+    BaseType_t err4 = xTaskCreatePinnedToCore(
+        TaskTitulacion,                    // Funcion de la tarea a ejecutar
+        "TaskTitulacion",   	            // Nombre de la tarea como String amigable para el usuario
+        configMINIMAL_STACK_SIZE*2, 		// Cantidad de stack de la tarea
+        NULL,                          	    // Parametros de tarea
+        tskIDLE_PRIORITY+1,         	    // Prioridad de la tarea -> Queremos que este un nivel encima de IDLE
+        NULL,                          		// Puntero a la tarea creada en el sistema
+        PROCESADORA                         // Numero de procesador
+    );
+
+    // Gestion de errores
+    if(err4 == pdFAIL)
+    {
+        ESP_LOGI(TAG_MAIN, "Error al crear la tarea.");
+        while(1);    // Si no pudo crear la tarea queda en un bucle infinito
+    }
+
 }
 
 /*==================[Implementacion de la tarea]======================*/
@@ -200,8 +220,8 @@ void TaskLimpieza(void *taskParmPtr)
     //gpio_set_direction(P_Motor, GPIO_MODE_OUTPUT);
     gpio_set_direction(P_Giro, GPIO_MODE_OUTPUT);
 
-    TickType_t xPeriodicity = T_LIMPIEZA; 
-    TickType_t xLastWakeTime = xTaskGetTickCount();
+    TickType_t xPeriodicity     = T_TITULACION; 
+    TickType_t xLastWakeTime    = xTaskGetTickCount();
 
     /*==================[Bucle]======================*/
     while(1)
@@ -290,6 +310,30 @@ void TaskCalibracion(void *taskParmPtr)
             default:
                 break;
         }
+    } 
+}
+
+void TaskTitulacion(void *taskParmPtr)
+{
+    // ---La limpieza de la bomba va a ser regulabre y no por tiempo---
+    // ---Se deben pasar DOS parámetros -> La direccion de giro y el on/off---
+
+    /*==================[Configuraciones]======================*/
+    bool flag_Titulacion_main;
+
+    TickType_t xPeriodicity     = T_TITULACION; 
+    TickType_t xLastWakeTime    = xTaskGetTickCount();
+
+    /*==================[Bucle]======================*/
+    while(1)
+    {
+        xQueueReceive(S_Titulacion, &flag_Titulacion_main, portMAX_DELAY);
+        xLastWakeTime = xTaskGetTickCount();
+        ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
+        vTaskDelayUntil(&xLastWakeTime, xPeriodicity);
+        ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
+        vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
+        volumen();
     } 
 }
 
