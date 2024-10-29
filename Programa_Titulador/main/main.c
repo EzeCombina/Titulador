@@ -87,7 +87,7 @@ void app_main(void)
     S_Agitador = xQueueCreate(1, sizeof(bool));
     //S_Limpieza = xSemaphoreCreateBinary();
     S_Limpieza = xQueueCreate(1, sizeof(limpieza_main));
-    S_Calibracion = xQueueCreate(1, sizeof(char));
+    S_Calibracion = xQueueCreate(1, sizeof(char*));
     S_Titulacion = xQueueCreate(1, sizeof(bool));
 
     // Set the LEDC peripheral configuration
@@ -104,6 +104,9 @@ void app_main(void)
 
     valoresRecta.Pendiente = valoresRecta.Pendiente_Guardado / 10000.0;
     valoresRecta.Ordenada = valoresRecta.Ordenada_Guardado / 10000.0;
+
+    ESP_LOGI(TAG_MAIN, "Pendiente -> %.03f", valoresRecta.Pendiente);
+    ESP_LOGI(TAG_MAIN, "Ordenada -> %.03f", valoresRecta.Ordenada);
 
     // Iniciar UART
     init_uart();
@@ -255,60 +258,49 @@ void TaskCalibracion(void *taskParmPtr)
     //esp_rom_gpio_pad_select_gpio(P_Motor);
     //gpio_set_direction(P_Motor, GPIO_MODE_OUTPUT);
 
-    char estado_calibracion;
+    char *estado_calibracion;
     char valor_actual = '/';
 
     /*==================[Bucle]======================*/
     while(1)
     {
         xQueueReceive(S_Calibracion, &estado_calibracion, portMAX_DELAY);
-        switch(estado_calibracion)
+        ESP_LOGI(TAG_MAIN, "%s", estado_calibracion);
+
+        if(strcmp(estado_calibracion, "D") == 0)
         {
-            case 'D':       // PH 4
-                ESP_LOGI(TAG_MAIN, "Calibración PH4");
-                valor_actual = estado_calibracion;
-                //lectura(estado_calibracion);
-                break;
+            ESP_LOGI(TAG_MAIN, "Calibración PH4");
+            valoresCalibracion.lectura_PH4 = Vout_filtrada_corregida;
+            ESP_LOGI(TAG_MAIN, "%.03f", valoresCalibracion.lectura_PH4);
+            //lectura(estado_calibracion);
+        }
 
-            case 'E':       // PH 7
-                ESP_LOGI(TAG_MAIN, "Calibración PH7");
-                valor_actual = estado_calibracion;
-                //lectura(estado_calibracion);
-                break;
+        if(strcmp(estado_calibracion, "E") == 0)
+        {
+            ESP_LOGI(TAG_MAIN, "Calibración PH7");
+            valoresCalibracion.lectura_PH7 = Vout_filtrada_corregida;
+            ESP_LOGI(TAG_MAIN, "%.03f", valoresCalibracion.lectura_PH7);
+        }
 
-            case 'F':       // PH 10
-                ESP_LOGI(TAG_MAIN, "Calibración PH10");
-                valor_actual = estado_calibracion;
-                //lectura(estado_calibracion);
-                break;
+        if(strcmp(estado_calibracion, "F") == 0)
+        {
+            ESP_LOGI(TAG_MAIN, "Calibración PH10");
+            valoresCalibracion.lectura_PH10 = Vout_filtrada_corregida;
+            ESP_LOGI(TAG_MAIN, "%.03f", valoresCalibracion.lectura_PH10);
 
-            case 'N':       // PH 10
-                ESP_LOGI(TAG_MAIN, "Guardado PH");
-                lectura(valor_actual);
-                break;
+            adc_calibracion();
 
-            // ---VER EL VALOR DEL CHAR CUANDO SE QUIERE GUARDAR EL VALOR FINAL DE LA RECTA (ORDENADA Y PENDIENTE)---
-            case 'a':       // RESULTADO FINAL
-                // Guardadr valor en la flash
-                // Calculo de recta de regresion 
-                
-                adc_calibracion();
+            // Conversion de la pendiente y la ordenada a variables enteras para poder guardarlas en la falsh 
 
-                // Conversion de la pendiente y la ordenada a variables enteras para poder guardarlas en la falsh 
+            valoresRecta.Pendiente_Guardado = (int32_t) (valoresRecta.Pendiente * 10000.0);    // Multiplicamos por 1000 para guardar 3 decimales
+            valoresRecta.Ordenada_Guardado = (int32_t) (valoresRecta.Ordenada * 10000.0);      // En caso de necesitar mayor presicion multiplicar por un numero mas grande 
 
-                valoresRecta.Pendiente_Guardado = (int32_t) (valoresRecta.Pendiente * 10000.0);    // Multiplicamos por 1000 para guardar 3 decimales
-                valoresRecta.Ordenada_Guardado = (int32_t) (valoresRecta.Ordenada * 10000.0);      // En caso de necesitar mayor presicion multiplicar por un numero mas grande 
+            // Borrado previo a la escritura (NO Necesario)
+            //erase_nvs();
 
-                // Borrado previo a la escritura (NO Necesario)
-                //erase_nvs();
-
-                // Guardado en la memoria flash 
-                write_nvs(key_pendiente, valoresRecta.Pendiente_Guardado);
-                write_nvs(key_ordenada, valoresRecta.Ordenada_Guardado);
-                break;
-            
-            default:
-                break;
+            // Guardado en la memoria flash 
+            write_nvs(key_pendiente, valoresRecta.Pendiente_Guardado);
+            write_nvs(key_ordenada, valoresRecta.Ordenada_Guardado);
         }
     } 
 }

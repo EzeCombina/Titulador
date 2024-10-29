@@ -96,8 +96,8 @@ void TaskADC(void *taskParmPtr)
             //Vout_PH = ((LecturaFiltrada)*T_PH) / BITS12; 
             //Vout_PH = Vout_PH*1.8529;
             //Vout_PH = -7.2286*Vout_filtrada_corregida + 24.662;
-            //Vout_PH = (Vout_filtrada_corregida - valoresRecta.Ordenada) / valoresRecta.Pendiente;
-            Vout_PH = (Vout_filtrada_corregida - 3.41) / (-0.13833);
+            Vout_PH = (Vout_filtrada_corregida - valoresRecta.Ordenada) / valoresRecta.Pendiente;
+            //Vout_PH = (Vout_filtrada_corregida - 3.41) / (-0.13833);
             modo++;
         }
 
