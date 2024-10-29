@@ -263,7 +263,6 @@ void TaskCalibracion(void *taskParmPtr)
     //gpio_set_direction(P_Motor, GPIO_MODE_OUTPUT);
 
     char *estado_calibracion;
-    char valor_actual = '/';
 
     /*==================[Bucle]======================*/
     while(1)

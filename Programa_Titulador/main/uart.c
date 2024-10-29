@@ -220,4 +220,5 @@ void TaskUart(void *taskParmPtr)
 void fin_titulacion()
 {
     uart_write_bytes(UART_NUM, Titular_END, sizeof(Titular_END));
+    flag_Titular = false;
 }
