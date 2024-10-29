@@ -16,6 +16,9 @@
 #define PH7                 7.0
 #define PH10                10.0
 
+#define CANTIDAD_MUESTRAS   5
+#define MULTIPLICADOR       1.0/(float)CANTIDAD_MUESTRAS 
+
 /*==================[Prototipos de funciones]======================*/
 
 void TaskADC(void *taskParmPtr);   
@@ -33,6 +36,10 @@ int veces[4096];                                        // Contar las cantidad d
 uint64_t millisAnt              = 0;                    // Toma el valor del momento
 float Vout_filtrada_corregida   = 0;
 float Vout_PH                   = 0;
+
+float muestras[CANTIDAD_MUESTRAS]           = {0, 0, 0, 0, 0};
+float muestras_pasadas[CANTIDAD_MUESTRAS]   = {0, 0, 0, 0, 0};
+float prom, prom_pasadas;
 
 extern valoresPH valoresCalibracion;
 extern RectaRegresion valoresRecta;
@@ -155,4 +162,32 @@ void adc_calibracion()
     valoresRecta.Pendiente = (valoresRecta.Suma_XY - ((valoresRecta.Sum_X * valoresRecta.Sum_Y) / valoresRecta.N)) / (valoresRecta.Suma_XSquare - (pow(valoresRecta.Sum_X, 2) / valoresRecta.N));
     valoresRecta.Ordenada = valoresRecta.MediaY - valoresRecta.Pendiente * valoresRecta.MediaX;
     ESP_LOGI(TAG_ADC, "Pendiente -> %f - Ordenada -> %f", valoresRecta.Pendiente, valoresRecta.Ordenada);
+}
+
+void volumen(float *ptr)
+{
+    // ---ACA VA EL CÓDIGO REFEENTE A LA COMPARACIÓN DE VALORES DE PH PARA CONOCER EL PUNTO DE INFLEXIÓN---
+    muestras[0] = Vout_PH;
+    for(int i = 0; i < CANTIDAD_MUESTRAS; i++)
+    {
+        prom += MULTIPLICADOR*muestras[i];
+    }
+    for(int j = 0; j < CANTIDAD_MUESTRAS; j++)
+    {
+        prom_pasadas += MULTIPLICADOR*muestras_pasadas[j];
+    }
+
+    if(muestras_pasadas[CANTIDAD_MUESTRAS - 1] != 0)
+    {
+        *ptr = fabs(prom - prom_pasadas);   // Valor absoluto
+    }
+
+    for(int n = 0; n < CANTIDAD_MUESTRAS; n++)
+    {
+        muestras_pasadas[n] = muestras[n];
+    }
+    for(int m = CANTIDAD_MUESTRAS - 1; m >= CANTIDAD_MUESTRAS - (CANTIDAD_MUESTRAS - 1); m--)
+    {
+        muestras[m] = muestras[m-1];
+    }
 }

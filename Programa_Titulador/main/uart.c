@@ -30,6 +30,8 @@ bool flag_Titular   = false;
 //bool flag_Limpieza = false;
 //uint8_t flag_Calibracion = 0;
 
+uint16_t Volumen_Guardado = 0;
+
 Limpieza limpieza;
 
 //char *msg = "OK\r\n";
@@ -202,7 +204,8 @@ void TaskUart(void *taskParmPtr)
         {
             // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
             uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
-            xQueueSend(S_Calibracion, &Guardar_Volumen, portMAX_DELAY); // ---VER SI ES EL COMANDO CORRECTO PARA REALIZAR EL GUARDADO---
+            //xQueueSend(S_Calibracion, &Guardar_Volumen, portMAX_DELAY); // ---VER COMO SE RECIBE EL VALOR DE VOLUMEN QUE SE QUIERE GUARDAR---
+            //Volumen_Guardado = ;
         }
 
         if(strcmp(Dato, Titular_ON) == 0)
@@ -214,7 +217,7 @@ void TaskUart(void *taskParmPtr)
     }
 }
 
-void volumen()
+void fin_titulacion()
 {
-    // ---ACA VA EL CÓDIGO REFEENTE A LA COMPARACIÓN DE VALORES DE PH PARA CONOCER EL PUNTO DE INFLEXIÓN---
+    uart_write_bytes(UART_NUM, Titular_END, sizeof(Titular_END));
 }

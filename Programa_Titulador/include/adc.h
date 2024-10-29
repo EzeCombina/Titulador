@@ -55,5 +55,6 @@ typedef struct
 void adc_init();
 void lectura(char valor_actual);
 void adc_calibracion();
+void volumen(float *ptr);
 
 #endif

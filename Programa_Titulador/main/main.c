@@ -26,13 +26,15 @@
 
 /*==================[Definiciones]======================*/
 
-#define T_TITULACION_MS     1150
-#define T_TITULACION        pdMS_TO_TICKS(T_TITULACION_MS)
-#define PROCESADORA         0
-#define PROCESADORB         1
-#define C_MEDICIONES        10
-#define T_MEDICIONES_MS     50
-#define T_MEDICIONES        pdMS_TO_TICKS(T_MEDICIONES_MS)
+#define T_TITULACION_MS_1ml     1150    // ---VER---
+#define T_TITULACION_1ml        pdMS_TO_TICKS(T_TITULACION_MS_1ml)
+#define T_TITULACION_MS_01ml    115
+#define T_TITULACION_01ml       pdMS_TO_TICKS(T_TITULACION_MS_01ml)
+#define PROCESADORA             0
+#define PROCESADORB             1
+#define C_MEDICIONES            10
+#define T_MEDICIONES_MS         50
+#define T_MEDICIONES            pdMS_TO_TICKS(T_MEDICIONES_MS)
 
 // ---PWM---
 #define LEDC_TIMER              LEDC_TIMER_0
@@ -61,6 +63,8 @@ char *key_pendiente = "Pend";
 char *key_ordenada = "Ord";
 
 Limpieza limpieza_main;
+
+extern uint16_t Volumen_Guardado;
 
 /*==================[Handles]==============================*/
 
@@ -223,8 +227,8 @@ void TaskLimpieza(void *taskParmPtr)
     //gpio_set_direction(P_Motor, GPIO_MODE_OUTPUT);
     gpio_set_direction(P_Giro, GPIO_MODE_OUTPUT);
 
-    TickType_t xPeriodicity     = T_TITULACION; 
-    TickType_t xLastWakeTime    = xTaskGetTickCount();
+    // TickType_t xPeriodicity     = T_TITULACION_1ml; 
+    // TickType_t xLastWakeTime    = xTaskGetTickCount();
 
     /*==================[Bucle]======================*/
     while(1)
@@ -307,25 +311,45 @@ void TaskCalibracion(void *taskParmPtr)
 
 void TaskTitulacion(void *taskParmPtr)
 {
-    // ---La limpieza de la bomba va a ser regulabre y no por tiempo---
-    // ---Se deben pasar DOS parámetros -> La direccion de giro y el on/off---
-
     /*==================[Configuraciones]======================*/
     bool flag_Titulacion_main;
 
-    TickType_t xPeriodicity     = T_TITULACION; 
-    TickType_t xLastWakeTime    = xTaskGetTickCount();
+    float dif = 0;
+    float *ptr_dif = &dif;
+    float volumen_registrado = 0;
+
+    TickType_t xPeriodicity_1ml     = T_TITULACION_1ml; 
+    TickType_t xPeriodicity_01ml    = T_TITULACION_01ml; 
+    TickType_t xLastWakeTime        = xTaskGetTickCount();
 
     /*==================[Bucle]======================*/
     while(1)
     {
         xQueueReceive(S_Titulacion, &flag_Titulacion_main, portMAX_DELAY);
-        xLastWakeTime = xTaskGetTickCount();
-        ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
-        vTaskDelayUntil(&xLastWakeTime, xPeriodicity);
-        ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
-        vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
-        volumen();
+        if(dif < 0.2)   // Dif de PH 
+        {
+            xLastWakeTime = xTaskGetTickCount();
+            ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
+            vTaskDelayUntil(&xLastWakeTime, xPeriodicity_1ml);
+            ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
+            volumen_registrado += 1;
+            //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
+        }
+
+        if(dif >= 0.2)   // Dif de PH 
+        {
+            xLastWakeTime = xTaskGetTickCount();
+            ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
+            vTaskDelayUntil(&xLastWakeTime, xPeriodicity_01ml);
+            ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
+            volumen_registrado += 0.1;
+            //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
+        }
+        if(volumen_registrado >= Volumen_Guardado)
+        {
+            fin_titulacion();
+        }
+        volumen(ptr_dif);
     } 
 }
 

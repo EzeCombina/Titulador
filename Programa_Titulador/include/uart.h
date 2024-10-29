@@ -37,6 +37,6 @@ typedef struct
 /*==================[Prototipos de funciones]======================*/
 
 void init_uart();
-void volumen();
+void fin_titulacion();
 
 #endif
