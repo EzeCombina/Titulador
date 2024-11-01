@@ -1,6 +1,7 @@
 /*==================[ Inclusiones ]============================================*/
 #include "../include/uart.h"
 #include <string.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include "esp_log.h"
 
@@ -9,6 +10,8 @@
 #define PROCESADORA         0
 #define PROCESADORB         1
 #define T_GUARDADO          10     // Timepo de espera entre datos leidos
+
+#define CARACTERES          2
 
 /*==================[Prototipos de funciones]======================*/
 
@@ -30,7 +33,9 @@ bool flag_Titular   = false;
 //bool flag_Limpieza = false;
 //uint8_t flag_Calibracion = 0;
 
-uint16_t Volumen_Guardado = 0;
+int Volumen_Comp; 
+char Volumen_Anterior[CARACTERES];
+char *Dato_Completo;
 
 Limpieza limpieza;
 
@@ -122,6 +127,8 @@ void TaskUart(void *taskParmPtr)
 
         // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
         //uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
+        ESP_LOGI(TAG_UART, "Dato recibido -> %s\n", Dato);
+        Dato_Completo = Dato;
 
         // Recortamos el dato que se recibe
         Dato[1] = '\0';
@@ -200,12 +207,25 @@ void TaskUart(void *taskParmPtr)
             xQueueSend(S_Calibracion, &Buffer_10, portMAX_DELAY);
         }
 
+        if(strcmp(Dato, Volumen) == 0)
+        {
+            //snprintf(Volumen_Anterior, sizeof(Volumen_Anterior), "%d", Volumen_Guardado);
+            uart_write_bytes(UART_NUM, Volumen_Anterior, sizeof(Volumen_Anterior));
+            uart_write_bytes(UART_NUM, "/", sizeof(char));
+        }
+
         if(strcmp(Dato, Guardar_Volumen) == 0)
         {
             // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
             uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
-            //xQueueSend(S_Calibracion, &Guardar_Volumen, portMAX_DELAY); // ---VER COMO SE RECIBE EL VALOR DE VOLUMEN QUE SE QUIERE GUARDAR---
-            //Volumen_Guardado = ;
+            
+            for(int i = 0; i < CARACTERES; i++)
+            {
+                Volumen_Anterior[i] = Dato_Completo[i+1];
+            }
+            Volumen_Anterior[CARACTERES] = '\0'; 
+            ESP_LOGI(TAG_UART, "Valor de Volumen Guardado -> %s", Volumen_Anterior);
+            Volumen_Comp = atoi(Volumen_Anterior);
         }
 
         if(strcmp(Dato, Titular_ON) == 0)

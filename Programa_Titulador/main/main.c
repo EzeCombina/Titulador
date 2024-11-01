@@ -49,7 +49,7 @@
 /*==================[Variables globales]======================*/
 
 gpio_int_type_t P_Agitador = GPIO_NUM_17;
-gpio_int_type_t P_3_3      = GPIO_NUM_32;       // Salida 3.3 
+gpio_int_type_t P_3_3      = GPIO_NUM_22;       // Salida 3.3 
 gpio_int_type_t P_Motor    = GPIO_NUM_12;
 gpio_int_type_t P_Giro     = GPIO_NUM_27;
 
@@ -64,7 +64,7 @@ char *key_ordenada = "Ord";
 
 Limpieza limpieza_main;
 
-extern uint16_t Volumen_Guardado;
+extern int Volumen_Comp;
 
 /*==================[Handles]==============================*/
 
@@ -93,6 +93,10 @@ void app_main(void)
     S_Limpieza = xQueueCreate(1, sizeof(limpieza_main));
     S_Calibracion = xQueueCreate(1, sizeof(char*));
     S_Titulacion = xQueueCreate(1, sizeof(bool));
+
+    esp_rom_gpio_pad_select_gpio(P_3_3);
+    gpio_set_direction(P_3_3, GPIO_MODE_OUTPUT);
+    gpio_set_level(P_3_3, 1);
 
     // Set the LEDC peripheral configuration
     example_ledc_init();
@@ -344,7 +348,7 @@ void TaskTitulacion(void *taskParmPtr)
             volumen_registrado += 0.1;
             //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
         }
-        if(volumen_registrado >= Volumen_Guardado)
+        if(volumen_registrado >= Volumen_Comp)
         {
             fin_titulacion();
         }
