@@ -11,8 +11,6 @@
 #define PROCESADORB         1
 #define T_GUARDADO          10     // Timepo de espera entre datos leidos
 
-#define CARACTERES          2
-
 /*==================[Prototipos de funciones]======================*/
 
 esp_err_t uart_param_config(uart_port_t uart_num, const uart_config_t *uart_config);
@@ -33,9 +31,8 @@ bool flag_Titular   = false;
 //bool flag_Limpieza = false;
 //uint8_t flag_Calibracion = 0;
 
-int Volumen_Comp; 
-char Volumen_Anterior[CARACTERES];
-char *Dato_Completo;
+int Volumen_Comp = 0; 
+char Volumen_Anterior[4];
 
 Limpieza limpieza;
 
@@ -125,16 +122,27 @@ void TaskUart(void *taskParmPtr)
             continue;
         }
 
+        if(len > 1)
+        {
+            for(int i = 0; i < len - 1; i++)
+            {
+                Volumen_Anterior[i] = Dato[i+1];
+            }
+        }
+
+        ESP_LOGI(TAG_UART, "len -> %d", len);
+
         // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
         //uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
         ESP_LOGI(TAG_UART, "Dato recibido -> %s\n", Dato);
-        Dato_Completo = Dato;
+        
 
         // Recortamos el dato que se recibe
         Dato[1] = '\0';
 
         //ESP_LOGI(TAG_UART, "Largo Dato -> %d - %d", strlen(Dato), strlen(AI));
         ESP_LOGI(TAG_UART, "Dato recibido -> %s\n", Dato);
+        ESP_LOGI(TAG_UART, "Dato recibido -> %s\n", Volumen_Anterior);
 
         if(strcmp(Dato, Agitador_ON) == 0)
         {
@@ -178,12 +186,12 @@ void TaskUart(void *taskParmPtr)
             uart_write_bytes(UART_NUM, valor, sizeof(valor));
             uart_write_bytes(UART_NUM, "/", sizeof(char));
 
-            if(flag_Titular == true)
-            {
-                xQueueSend(S_Titulacion, &flag_Titular, portMAX_DELAY); // Probar el portMAX_DELAY en 0
-            }
+            // if(flag_Titular == true)
+            // {
+            //     xQueueSend(S_Titulacion, &flag_Titular, portMAX_DELAY); // Probar el portMAX_DELAY en 0
+            // }
 
-            vTaskDelay(pdMS_TO_TICKS(100));
+            // vTaskDelay(pdMS_TO_TICKS(100));
         }
 
         if(strcmp(Dato, Buffer_4) == 0)
@@ -219,11 +227,20 @@ void TaskUart(void *taskParmPtr)
             // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
             uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
             
-            for(int i = 0; i < CARACTERES; i++)
+            if(len == 2)
             {
-                Volumen_Anterior[i] = Dato_Completo[i+1];
+                Volumen_Anterior[len-1] = '\0';
             }
-            Volumen_Anterior[CARACTERES] = '\0'; 
+            else if(len == 3)
+            {
+                Volumen_Anterior[len-1] = '\0';
+            }
+            else if(len == 4)
+            {
+                Volumen_Anterior[len-1] = '\0';
+            }
+            
+            //Volumen_Anterior[CARACTERES] = '\0'; 
             ESP_LOGI(TAG_UART, "Valor de Volumen Guardado -> %s", Volumen_Anterior);
             Volumen_Comp = atoi(Volumen_Anterior);
         }
@@ -233,6 +250,12 @@ void TaskUart(void *taskParmPtr)
             // ---Le enviamos "OK" al ATMega cuando se recibe el dato---
             uart_write_bytes(UART_NUM, (const char*)msg, sizeof(msg));
             flag_Titular = true;
+        }
+
+        if(strcmp(Dato, Titular_OFF) == 0)
+        {
+            uart_write_bytes(UART_NUM, Titular_END, sizeof(Titular_END));
+            flag_Titular = false;
         }
     }
 }

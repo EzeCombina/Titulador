@@ -26,10 +26,10 @@
 
 /*==================[Definiciones]======================*/
 
-#define T_TITULACION_MS_1ml     1150    // ---VER---
-#define T_TITULACION_1ml        pdMS_TO_TICKS(T_TITULACION_MS_1ml)
-#define T_TITULACION_MS_01ml    115
+#define T_TITULACION_MS_01ml    1410    // ---VER---(1150)
 #define T_TITULACION_01ml       pdMS_TO_TICKS(T_TITULACION_MS_01ml)
+#define T_TITULACION_MS_1ml     T_TITULACION_MS_01ml*10
+#define T_TITULACION_1ml        pdMS_TO_TICKS(T_TITULACION_MS_1ml)
 #define PROCESADORA             0
 #define PROCESADORB             1
 #define C_MEDICIONES            10
@@ -44,7 +44,7 @@
 #define LEDC_DUTY_RES           LEDC_TIMER_8_BIT                            // Resolución del PWM (8 bits)
 #define LEDC_DUTY_PERCENT       50                                          // Duty porcentual
 #define LEDC_DUTY               ((LEDC_DUTY_PERCENT*254)/100)               // Duty al 50%. (2 ** 8) * 50% = 128
-#define LEDC_FREQUENCY          (10000)                                     // Frequency in Hertz. Set frequency at 1 kHz
+#define LEDC_FREQUENCY          (10000)                                     // Frequency in Hertz. Set frequency at 10 kHz
 
 /*==================[Variables globales]======================*/
 
@@ -63,8 +63,12 @@ char *key_pendiente = "Pend";
 char *key_ordenada = "Ord";
 
 Limpieza limpieza_main;
+float Vout_PH_Ant = 0.0;
+float dif = 0.0;
 
+extern float Vout_PH;
 extern int Volumen_Comp;
+extern bool flag_Titular;
 
 /*==================[Handles]==============================*/
 
@@ -240,12 +244,12 @@ void TaskLimpieza(void *taskParmPtr)
         xQueueReceive(S_Limpieza, &limpieza_main, portMAX_DELAY);
         gpio_set_level(P_Giro, limpieza_main.Giro_Limpieza);
 
-        if(limpieza_main.Giro_Limpieza == true)
+        if(limpieza_main.Habilitador_Limpieza == true)
         {
             // Habilitar Enabler
             ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
         }
-        else if(limpieza_main.Giro_Limpieza == false)
+        else if(limpieza_main.Habilitador_Limpieza == false)
         {
             // Desabiilitar Enabler
             ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
@@ -315,10 +319,10 @@ void TaskCalibracion(void *taskParmPtr)
 void TaskTitulacion(void *taskParmPtr)
 {
     /*==================[Configuraciones]======================*/
-    bool flag_Titulacion_main;
+    //bool flag_Titulacion_main;
 
-    float dif = 0;
-    float *ptr_dif = &dif;
+    // float dif = 0;
+    // float *ptr_dif = &dif;
     float volumen_registrado = 0;
 
     TickType_t xPeriodicity_1ml     = T_TITULACION_1ml; 
@@ -328,31 +332,47 @@ void TaskTitulacion(void *taskParmPtr)
     /*==================[Bucle]======================*/
     while(1)
     {
-        xQueueReceive(S_Titulacion, &flag_Titulacion_main, portMAX_DELAY);
-        if(dif < 0.2)   // Dif de PH 
+        //xQueueReceive(S_Titulacion, &flag_Titulacion_main, portMAX_DELAY);
+        if(flag_Titular == true)
         {
-            xLastWakeTime = xTaskGetTickCount();
-            ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
-            vTaskDelayUntil(&xLastWakeTime, xPeriodicity_1ml);
-            ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
-            volumen_registrado += 1;
-            //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
-        }
+            if(dif < 0.2)   // Dif de PH 
+            {
+                Vout_PH_Ant = Vout_PH; // Guardamos el valor anterior de PH
+                xLastWakeTime = xTaskGetTickCount();
+                ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
+                vTaskDelayUntil(&xLastWakeTime, xPeriodicity_1ml);
+                ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
+                volumen_registrado += 1;
+                //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
+            }
 
-        if(dif >= 0.2)   // Dif de PH 
-        {
-            xLastWakeTime = xTaskGetTickCount();
-            ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
-            vTaskDelayUntil(&xLastWakeTime, xPeriodicity_01ml);
-            ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
-            volumen_registrado += 0.1;
-            //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
+            if(dif >= 0.2)   // Dif de PH 
+            {
+                Vout_PH_Ant = Vout_PH; // Guardamos el valor anterior de PH
+                xLastWakeTime = xTaskGetTickCount();
+                ESP_ERROR_CHECK(ledc_update_duty(LEDC_MODE, LEDC_CHANNEL));
+                vTaskDelayUntil(&xLastWakeTime, xPeriodicity_01ml);
+                ESP_ERROR_CHECK(ledc_stop(LEDC_MODE, LEDC_CHANNEL, 0));
+                volumen_registrado += 0.1;
+                //vTaskDelay(pdMS_TO_TICKS(500)); // Tiempo de espera para que el electrodo ajuste su medicion
+            }
+
+            if(volumen_registrado >= Volumen_Comp)
+            {
+                fin_titulacion();
+            }
+
+            // Cálculo de la diferencia de PH 
+            // Lo hacemos aca ya que en el proceso del ADC se esta midiendo constantemente, por lo tanto la dif siempre era muy pequeña
+            dif = sqrt(pow((Vout_PH - Vout_PH_Ant), 2));
+            ESP_LOGI(TAG_MAIN, "Dif -> %.02f", dif);
+
+            vTaskDelay(pdMS_TO_TICKS(1000)); // Tiempo de espera entre cada inyección 
         }
-        if(volumen_registrado >= Volumen_Comp)
-        {
-            fin_titulacion();
-        }
-        volumen(ptr_dif);
+        vTaskDelay(pdMS_TO_TICKS(100)); // Tiempo de espera entre cada inyección
+        //volumen(ptr_dif); 
+
+        // ---MANDAR J## (## = VOLUMEN EN EL PUNTO DE INFLECCIÓN) CUANDO TERMINE LA TITULACION POR CUALQUIERA DE LOS DOS METODOS---
     } 
 }
 

@@ -104,7 +104,8 @@ void TaskADC(void *taskParmPtr)
             //Vout_PH = Vout_PH*1.8529;
             //Vout_PH = -7.2286*Vout_filtrada_corregida + 24.662;
             Vout_PH = (Vout_filtrada_corregida - valoresRecta.Ordenada) / valoresRecta.Pendiente;
-            //Vout_PH = (Vout_filtrada_corregida - 3.41) / (-0.13833);
+            //Vout_PH = (Vout_filtrada_corregida - 3.41) / (-0.13833); 
+            
             modo++;
         }
 
@@ -164,30 +165,30 @@ void adc_calibracion()
     ESP_LOGI(TAG_ADC, "Pendiente -> %f - Ordenada -> %f", valoresRecta.Pendiente, valoresRecta.Ordenada);
 }
 
-void volumen(float *ptr)
-{
-    // ---ACA VA EL CÓDIGO REFEENTE A LA COMPARACIÓN DE VALORES DE PH PARA CONOCER EL PUNTO DE INFLEXIÓN---
-    muestras[0] = Vout_PH;
-    for(int i = 0; i < CANTIDAD_MUESTRAS; i++)
-    {
-        prom += MULTIPLICADOR*muestras[i];
-    }
-    for(int j = 0; j < CANTIDAD_MUESTRAS; j++)
-    {
-        prom_pasadas += MULTIPLICADOR*muestras_pasadas[j];
-    }
+// void volumen(float *ptr)
+// {
+//     // ---ACA VA EL CÓDIGO REFEENTE A LA COMPARACIÓN DE VALORES DE PH PARA CONOCER EL PUNTO DE INFLEXIÓN---
+//     muestras[0] = Vout_PH;
+//     for(int i = 0; i < CANTIDAD_MUESTRAS; i++)
+//     {
+//         prom += MULTIPLICADOR*muestras[i];
+//     }
+//     for(int j = 0; j < CANTIDAD_MUESTRAS; j++)
+//     {
+//         prom_pasadas += MULTIPLICADOR*muestras_pasadas[j];
+//     }
 
-    if(muestras_pasadas[CANTIDAD_MUESTRAS - 1] != 0)
-    {
-        *ptr = fabs(prom - prom_pasadas);   // Valor absoluto
-    }
+//     if(muestras_pasadas[CANTIDAD_MUESTRAS - 1] != 0)
+//     {
+//         *ptr = fabs(prom - prom_pasadas);   // Valor absoluto
+//     }
 
-    for(int n = 0; n < CANTIDAD_MUESTRAS; n++)
-    {
-        muestras_pasadas[n] = muestras[n];
-    }
-    for(int m = CANTIDAD_MUESTRAS - 1; m >= CANTIDAD_MUESTRAS - (CANTIDAD_MUESTRAS - 1); m--)
-    {
-        muestras[m] = muestras[m-1];
-    }
-}
+//     for(int n = 0; n < CANTIDAD_MUESTRAS; n++)
+//     {
+//         muestras_pasadas[n] = muestras[n];
+//     }
+//     for(int m = CANTIDAD_MUESTRAS - 1; m >= CANTIDAD_MUESTRAS - (CANTIDAD_MUESTRAS - 1); m--)
+//     {
+//         muestras[m] = muestras[m-1];
+//     }
+// }
