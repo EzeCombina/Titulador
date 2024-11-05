@@ -24,7 +24,7 @@ void TaskUart(void *taskParmPtr);      // Prototipo de la función de la tarea
 static const char *TAG_UART = "UART";
 
 extern float Vout_PH;
-char valor[5];
+char valor[6];
 
 bool flag_Agitador  = false;
 bool flag_Titular   = false;
@@ -33,6 +33,8 @@ bool flag_Titular   = false;
 
 int Volumen_Comp = 0; 
 char Volumen_Anterior[4];
+extern float Volumen_Inflexion;
+char Volumen_Inflexion_ptr[5];
 
 Limpieza limpieza;
 
@@ -254,14 +256,22 @@ void TaskUart(void *taskParmPtr)
 
         if(strcmp(Dato, Titular_OFF) == 0)
         {
-            uart_write_bytes(UART_NUM, Titular_END, sizeof(Titular_END));
             flag_Titular = false;
+            snprintf(Volumen_Inflexion_ptr, sizeof(Volumen_Inflexion_ptr), "%.01f", Volumen_Inflexion);
+            uart_write_bytes(UART_NUM, Titular_END, sizeof(Titular_END));
+            uart_write_bytes(UART_NUM, "/", sizeof(char));
+            uart_write_bytes(UART_NUM, Volumen_Inflexion_ptr, sizeof(Volumen_Inflexion_ptr));
+            uart_write_bytes(UART_NUM, "/", sizeof(char));
         }
     }
 }
 
 void fin_titulacion()
 {
-    uart_write_bytes(UART_NUM, Titular_END, sizeof(Titular_END));
     flag_Titular = false;
+    snprintf(Volumen_Inflexion_ptr, sizeof(Volumen_Inflexion_ptr), "%.01f", Volumen_Inflexion);
+    uart_write_bytes(UART_NUM, Titular_END, sizeof(Titular_END));
+    uart_write_bytes(UART_NUM, "/", sizeof(char));
+    uart_write_bytes(UART_NUM, Volumen_Inflexion_ptr, sizeof(Volumen_Inflexion_ptr));
+    uart_write_bytes(UART_NUM, "/", sizeof(char));
 }

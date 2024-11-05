@@ -23,6 +23,7 @@
 #include "flash.c"
 #include "uart.c"
 #include "adc.c"
+#include "wifi.c"
 
 /*==================[Definiciones]======================*/
 
@@ -33,7 +34,7 @@
 #define PROCESADORA             0
 #define PROCESADORB             1
 #define C_MEDICIONES            10
-#define T_MEDICIONES_MS         50
+#define T_MEDICIONES_MS         1000
 #define T_MEDICIONES            pdMS_TO_TICKS(T_MEDICIONES_MS)
 
 // ---PWM---
@@ -63,8 +64,8 @@ char *key_pendiente = "Pend";
 char *key_ordenada = "Ord";
 
 Limpieza limpieza_main;
-float Vout_PH_Ant = 0.0;
-float dif = 0.0;
+float Vout_PH_Ant = 0.0, Volumen_Inflexion;
+float dif = 0.0, dif_guardado = 0.0;
 
 extern float Vout_PH;
 extern int Volumen_Comp;
@@ -119,6 +120,9 @@ void app_main(void)
 
     ESP_LOGI(TAG_MAIN, "Pendiente -> %.03f", valoresRecta.Pendiente);
     ESP_LOGI(TAG_MAIN, "Ordenada -> %.03f", valoresRecta.Ordenada);
+
+    // Iniciar Comunicacion Wifi
+    wifi_init();
 
     // Iniciar UART
     init_uart();
@@ -365,11 +369,19 @@ void TaskTitulacion(void *taskParmPtr)
             // Cálculo de la diferencia de PH 
             // Lo hacemos aca ya que en el proceso del ADC se esta midiendo constantemente, por lo tanto la dif siempre era muy pequeña
             dif = sqrt(pow((Vout_PH - Vout_PH_Ant), 2));
+
+            // Calculo de volumen de corte 
+            if(dif > dif_guardado)
+            {
+                dif_guardado = dif;
+                Volumen_Inflexion = volumen_registrado;
+            }
+
             ESP_LOGI(TAG_MAIN, "Dif -> %.02f", dif);
 
-            vTaskDelay(pdMS_TO_TICKS(1000)); // Tiempo de espera entre cada inyección 
+            vTaskDelay(T_MEDICIONES); // Tiempo de espera entre cada inyección 
         }
-        vTaskDelay(pdMS_TO_TICKS(100)); // Tiempo de espera entre cada inyección
+        vTaskDelay(pdMS_TO_TICKS(100));
         //volumen(ptr_dif); 
 
         // ---MANDAR J## (## = VOLUMEN EN EL PUNTO DE INFLECCIÓN) CUANDO TERMINE LA TITULACION POR CUALQUIERA DE LOS DOS METODOS---
